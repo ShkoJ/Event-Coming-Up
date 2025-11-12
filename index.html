@@ -3,45 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adding Event to Calendar...</title>
-    
-    <meta http-equiv="refresh" content="0; url=delal-career-fair.ics">
-
+    <title>Event Registration</title>
+    <!-- Load Tailwind CSS for simple styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f4f4f9;
-            text-align: center;
-            padding: 20px;
-        }
-        .container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 15px;
-        }
-        p {
-            color: #666;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
+        /* Custom font */
+        body { font-family: 'Inter', sans-serif; }
+        /* Style for the validation message */
+        #validation-message { transition: opacity 0.3s ease; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Adding Event to Calendar...</h1>
-        <p>Your calendar file is downloading now.</p>
-        <p>If the download doesn't start automatically, please <a href="delal-career-fair.ics" download="delal-career-fair.ics">click here to download the file directly.</a></p>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl">
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">
+            Delal Career Fair Registration
+        </h1>
+        <p class="text-gray-500 mb-8 text-center">
+            Enter your phone number below to complete your registration and receive updates.
+        </p>
+
+        <form id="registration-form" class="space-y-6">
+            <div>
+                <label for="phone-number" class="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number (XXXX XXX XXXX)
+                </label>
+                <input
+                    type="tel"
+                    id="phone-number"
+                    name="phone-number"
+                    placeholder="1234 567 8901"
+                    maxlength="14"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg tracking-wider"
+                >
+                <p id="validation-message" class="mt-2 text-sm text-red-600 opacity-0">
+                    Please ensure the number is exactly 12 digits (excluding spaces) in the format XXXX XXX XXXX.
+                </p>
+            </div>
+
+            <button
+                type="submit"
+                id="submit-button"
+                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150"
+            >
+                Register & Notify Channel
+            </button>
+        </form>
+
+        <div id="response-message" class="mt-6 p-4 text-center rounded-lg hidden"></div>
     </div>
+
+    <script>
+        const BOT_TOKEN = '8529449520:AAHcx5sOgKh8h641ZgrfPgwfnnGuX-1rF48';
+        // Using the channel name as the chat_id, prepended with @
+        const CHAT_ID = '@jobsssssssssssssssssssssssss'; 
+        const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+
+        const form = document.getElementById('registration-form');
+        const input = document.getElementById('phone-number');
+        const validationMessage = document.getElementById('validation-message');
+        const responseMessage = document.getElementById('response-message');
+        const submitButton = document.getElementById('submit-button');
+
+        // --- 1. Phone Number Formatting and Validation ---
+
+        /**
+         * Cleans the number, removing non-digit characters.
+         * @param {string} value - The input value.
+         * @returns {string} The cleaned, digit-only string.
+         */
+        const cleanNumber = (value) => value.replace(/\D/g, '');
+
+        /**
+         * Formats the number as XXXX XXX XXXX as the user types.
+         * @param {string} value - The cleaned digit string.
+         * @returns {string} The formatted string.
+         */
+        const formatNumber = (value) => {
+            const parts = [];
+            
+            // Part 1: First 4 digits
+            if (value.length > 0) parts.push(value.substring(0, 4));
+            
+            // Part 2: Next 3 digits
+            if (value.length > 4) parts.push(value.substring(4, 7));
+            
+            // Part 3: Last 4 digits
+            if (value.length > 7) parts.push(value.substring(7, 11));
+
+            return parts.join(' ');
+        };
+
+        // Event listener for real-time formatting
+        input.addEventListener('input', (e) => {
+            const cleaned = cleanNumber(e.target.value);
+            const formatted = formatNumber(cleaned);
+            e.target.value = formatted;
+            
+            // Basic length validation feedback
+            if (cleaned.length !== 11) {
+                validationMessage.classList.remove('opacity-0');
+            } else {
+                validationMessage.classList.add('opacity-0');
+            }
+        });
+
+        // --- 2. Telegram API Submission ---
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rawNumber = cleanNumber(input.value);
+            const formattedNumber = input.value;
+            
+            // Check for exact required length (11 digits)
+            if (rawNumber.length !== 11) {
+                validationMessage.classList.remove('opacity-0');
+                showResponse('error', 'Validation failed. Please enter exactly 11 digits (XXXX XXX XXXX).');
+                return;
+            } else {
+                validationMessage.classList.add('opacity-0');
+            }
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Sending...';
+            showResponse('info', 'Processing registration...');
+
+            // Construct the message text for Telegram
+            const messageText = `A new user has registered for the Delal Career Fair.\n\n👤 **Phone Number:** ${formattedNumber}`;
+
+            const payload = {
+                chat_id: CHAT_ID,
+                text: messageText,
+                parse_mode: 'Markdown' 
+            };
+            
+            try {
+                // Use a proxy server to avoid CORS issues if not on Vercel's Edge functions. 
+                // However, static Vercel deployments often work directly.
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.ok) {
+                    showResponse('success', `Success! The channel has been notified with: ${formattedNumber}`);
+                    form.reset();
+                    input.value = ''; // Clear input properly
+                } else {
+                    // Handle API specific errors (e.g., bot not admin, invalid chat ID)
+                    const errorMsg = data.description || 'Unknown Telegram API error.';
+                    showResponse('error', `Failed to send Telegram notification. Error: ${errorMsg}`);
+                    console.error('Telegram API Error:', data);
+                }
+
+            } catch (error) {
+                // Handle network or fetch errors
+                showResponse('error', `Network error occurred: Please check your connection or Vercel logs.`);
+                console.error('Fetch Error:', error);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Register & Notify Channel';
+            }
+        });
+
+        // --- 3. User Feedback Utility ---
+        function showResponse(type, message) {
+            responseMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800');
+            responseMessage.textContent = message;
+
+            if (type === 'success') {
+                responseMessage.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                responseMessage.classList.add('bg-red-100', 'text-red-800');
+            } else { // info
+                responseMessage.classList.add('bg-blue-100', 'text-blue-800');
+            }
+        }
+    </script>
 </body>
 </html>
