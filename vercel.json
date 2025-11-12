@@ -1,0 +1,17 @@
+{
+  "headers": [
+    {
+      "source": "/delal-career-fair.ics",
+      "headers": [
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"delal-career-fair.ics\""
+        },
+        {
+          "key": "Content-Type",
+          "value": "text/calendar"
+        }
+      ]
+    }
+  ]
+}
